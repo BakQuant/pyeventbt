@@ -8,30 +8,48 @@ Copyright (c) 2025 Marti Castany
 Licensed under the Apache License, Version 2.0
 """
 
-"""
-PyEventBT - Main Application Module
-
-This is a placeholder module for the PyEventBT package.
-The full implementation is under development.
-"""
+import argparse
+import sys
+from . import __version__
 
 
-def hello():
-    return "Welcome to PyEventBT - Event-Driven Backtesting Framework (Under Development)"
-
-
-def get_version():
+def main():
     """
-    Get the current version of PyEventBT.
-    
-    Returns:
-        str: The version number
+    Main entry point for the PyEventBT CLI.
     """
-    from . import __version__
-    return __version__
+    parser = argparse.ArgumentParser(
+        description="PyEventBT - Event-Driven Backtesting Framework"
+    )
+    parser.add_argument(
+        "--version", 
+        action="version", 
+        version=f"PyEventBT {__version__}"
+    )
+    parser.add_argument(
+        "command", 
+        nargs="?", 
+        choices=["info"], 
+        help="Command to run (default: info)"
+    )
+
+    args = parser.parse_args()
+
+    # Default behavior or 'info' command
+    if args.command == "info" or args.command is None:
+        print_info()
+
+
+def print_info():
+    print(f"PyEventBT v{__version__}")
+    print("========================================")
+    print("Documentation: https://pyeventbt.com")
+    print("GitHub:        https://github.com/marticastany/pyeventbt")
+    print("========================================")
+    print("\nPyEventBT is a framework/library.")
+    print("To use it in your project, import the components:")
+    print("\n    from pyeventbt import Strategy, BarEvent, SignalEvent")
+    print("\nFor examples and tutorials, visit the documentation.")
 
 
 if __name__ == "__main__":
-    print(hello())
-    print(f"Version: {get_version()}")
-
+    main()
