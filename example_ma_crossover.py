@@ -40,6 +40,9 @@ strategy_timeframes = [signal_timeframe]
 symbols_to_trade = ['EURUSD']
 starting_capital = 100000
 
+# Mode selection: "backtest" or "live"
+MODE = "backtest"
+
 # Strategy Parameters
 fast_ma_period = 10
 slow_ma_period = 30
@@ -137,34 +140,38 @@ to_date = datetime(year=2023, month=12, day=1)
 # csv_dir = '/Users/marticastany/Desktop/long_data' # Change it with your own path to the CSV data
 csv_dir = None # If you don't have CSV data, you can set this to None
 
-# Launch Backtest
-backtest = strategy.backtest(
-    strategy_id=strategy_id,
-    initial_capital=starting_capital,
-    symbols_to_trade=symbols_to_trade,
-    csv_dir=csv_dir,
-    backtest_name=strategy_id,
-    start_date=from_date,
-    end_date=to_date,
-    export_backtest_pickle=False,
-    account_currency='USD'
-)
+# Launch Backtest or Live
+if MODE == "backtest":
+    backtest = strategy.backtest(
+        strategy_id=strategy_id,
+        initial_capital=starting_capital,
+        symbols_to_trade=symbols_to_trade,
+        csv_dir=csv_dir,
+        backtest_name=strategy_id,
+        start_date=from_date,
+        end_date=to_date,
+        export_backtest_pickle=False,
+        account_currency='USD'
+    )
 
-backtest.plot()
+    backtest.plot()
 
-# Example: Running live with MT5
-# mt5_config = Mt5PlatformConfig(
-#     path="C:\\Program Files\\MetaTrader 5\\terminal64.exe",
-#     login=1234,
-#     password="1234",
-#     server="Demo",
-#     timeout=60000,
-#     portable=False
-# )
-# strategy.run_live(
-#     mt5_configuration=mt5_config,
-#     strategy_id=strategy_id,
-#     initial_capital=100000,
-#     symbols_to_trade=symbols_to_trade,
-#     heartbeat=0.1
-# )
+elif MODE == "live":
+    mt5_config = Mt5PlatformConfig(
+        path="C:\\Program Files\\MetaTrader 5\\terminal64.exe",
+        login=1234,
+        password="1234",
+        server="Demo",
+        timeout=60000,
+        portable=False
+    )
+    strategy.run_live(
+        mt5_configuration=mt5_config,
+        strategy_id=strategy_id,
+        initial_capital=100000,
+        symbols_to_trade=symbols_to_trade,
+        heartbeat=0.1
+    )
+
+else:
+    raise ValueError(f"Unknown MODE: {MODE}")

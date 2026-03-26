@@ -74,6 +74,23 @@ class Mt5SimulatorExecutionEngineConnector(IExecutionEngine):
         self.all_commodities_symbols = ("XAUUSD", "XAGUSD", "XTIUSD", "XNGUSD")
         self.all_indices_symbols = ("NI225", "WS30", "SP500", "FCHI40", "AUS200", "NDX", "UK100", "STOXX50E", "GDAXI", "SPA35")
 
+    def _build_comment(self, order_event, suffix: str) -> str:
+        base = str(order_event.strategy_id)
+        rule_id = None
+        contract_uid = None
+        if order_event.buffer_data is not None and isinstance(order_event.buffer_data, dict):
+            rule_id = order_event.buffer_data.get('rule_id')
+            contract_uid = order_event.buffer_data.get('contract_uid')
+        if contract_uid and rule_id:
+            comment = f"{str(contract_uid).strip()}|{str(rule_id).strip()}"
+        elif rule_id:
+            comment = f"{base}|{rule_id}"
+        else:
+            comment = f"{base}-{suffix}"
+        if len(comment) > 31:
+            comment = comment[:31]
+        return comment
+
     def _check_common_trade_values(self, volume: float = 0.0, price: float = 0.0, stop_loss: float = 0.0, take_profit: float = 0.0,
                                     magic: int  = 0, deviation: int = 0, comment: str = '') -> bool:
             """
@@ -718,7 +735,7 @@ class Mt5SimulatorExecutionEngineConnector(IExecutionEngine):
         symbol = order_event.symbol
         time_in_datetime: datetime = order_event.time_generated
         magic = int(order_event.strategy_id)   #For mt5, strategy id must be made only with numbers
-        comment = order_event.strategy_id + "-MKT"
+        comment = self._build_comment(order_event, "MKT")
         stop_loss = order_event.sl
         take_profit = order_event.tp
 
@@ -879,7 +896,7 @@ class Mt5SimulatorExecutionEngineConnector(IExecutionEngine):
         symbol = order_event.symbol
         time_in_datetime: datetime = order_event.time_generated
         magic = int(order_event.strategy_id)   #For mt5, strategy id must be made only with numbers
-        comment = order_event.strategy_id + "-PDG"
+        comment = self._build_comment(order_event, "PDG")
         volume = order_event.volume
         price=order_event.order_price
         stop_loss = order_event.sl

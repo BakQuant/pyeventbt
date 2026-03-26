@@ -47,7 +47,34 @@ class Mt5LiveExecutionEngineConnector(IExecutionEngine):
         self.DATA_PROVIDER = data_provider
         self.pending_orders: list[OrderSendResult] = [] #list of OrderSendResult objects from the pending orders (all will have same MagicNumber)
         self.magic_number = configs.magic_number
+        raw_allowed = list(configs.allowed_magic_numbers or [])
+        if int(self.magic_number) not in raw_allowed:
+            raw_allowed.append(int(self.magic_number))
+        self.allowed_magic_numbers = {int(x) for x in raw_allowed}
         #self.account_currency = self.get_account_currency()
+
+    def _is_allowed_magic(self, magic: int) -> bool:
+        try:
+            return int(magic) in self.allowed_magic_numbers
+        except Exception:
+            return False
+
+    def _build_comment(self, order_event, suffix: str) -> str:
+        base = str(order_event.strategy_id)
+        rule_id = None
+        contract_uid = None
+        if order_event.buffer_data is not None and isinstance(order_event.buffer_data, dict):
+            rule_id = order_event.buffer_data.get('rule_id')
+            contract_uid = order_event.buffer_data.get('contract_uid')
+        if contract_uid and rule_id:
+            comment = f"{str(contract_uid).strip()}|{str(rule_id).strip()}"
+        elif rule_id:
+            comment = f"{base}|{rule_id}"
+        else:
+            comment = f"{base}-{suffix}"
+        if len(comment) > 31:
+            comment = comment[:31]
+        return comment
 
     def _check_common_trade_values(self, volume: float = 0.0, price: float = 0.0, stop_loss: float = 0.0, take_profit: float = 0.0,
                                     magic: int  = 0, deviation: int = 0, comment: str = '') -> bool:
@@ -253,7 +280,7 @@ class Mt5LiveExecutionEngineConnector(IExecutionEngine):
         """
         symbol = order_event.symbol
         magic = int(order_event.strategy_id)   #For mt5, strategy id must be made only with numbers
-        comment = order_event.strategy_id + "-MKT"
+        comment = self._build_comment(order_event, "MKT")
 
         # Check if symbol is in Market Watch
         if not mt5.symbol_info(symbol).visible:
@@ -346,7 +373,7 @@ class Mt5LiveExecutionEngineConnector(IExecutionEngine):
         
         symbol = order_event.symbol
         magic = int(order_event.strategy_id)   #For mt5, strategy id must be made only with numbers
-        comment = order_event.strategy_id + "-PDG"
+        comment = self._build_comment(order_event, "PDG")
         signal_type = order_event.signal_type
         order_type = order_event.order_type
         volume = order_event.volume
@@ -516,22 +543,22 @@ class Mt5LiveExecutionEngineConnector(IExecutionEngine):
 
     def close_all_strategy_positions(self) -> None:
         for position in mt5.positions_get():
-            if position.magic == int(self.magic_number):
+            if self._is_allowed_magic(position.magic):
                 self.close_position(position.ticket)
     
     def close_all_strategy_positions_by_symbol(self, symbol: str) -> None:
         for position in mt5.positions_get(symbol=symbol):
-            if position.magic == int(self.magic_number):
+            if self._is_allowed_magic(position.magic):
                 self.close_position(position.ticket)
 
     def close_strategy_long_positions_by_symbol(self, symbol: str) -> None:
         for position in mt5.positions_get(symbol=symbol):
-            if position.magic == int(self.magic_number) and position.type == mt5.ORDER_TYPE_BUY:
+            if self._is_allowed_magic(position.magic) and position.type == mt5.ORDER_TYPE_BUY:
                 self.close_position(position.ticket)
 
     def close_strategy_short_positions_by_symbol(self, symbol: str) -> None:
         for position in mt5.positions_get(symbol=symbol):
-            if position.magic == int(self.magic_number) and position.type == mt5.ORDER_TYPE_SELL:
+            if self._is_allowed_magic(position.magic) and position.type == mt5.ORDER_TYPE_SELL:
                 self.close_position(position.ticket)
 
     def cancel_pending_order(self, order_ticket: int) -> OrderSendResult:
@@ -564,7 +591,7 @@ class Mt5LiveExecutionEngineConnector(IExecutionEngine):
 
     def cancel_all_strategy_pending_orders(self) -> None:
         for order in mt5.orders_get():
-            if order.magic == int(self.magic_number):
+            if self._is_allowed_magic(order.magic):
                 self.cancel_pending_order(order.ticket)
     
     def cancel_all_strategy_pending_orders_by_type_and_symbol(self, order_type:str, symbol: str) -> None:
@@ -578,7 +605,7 @@ class Mt5LiveExecutionEngineConnector(IExecutionEngine):
             return
         
         for order in mt5.orders_get(symbol=symbol):
-            if order.magic == int(self.magic_number) and order.type == order_type_int:
+            if self._is_allowed_magic(order.magic) and order.type == order_type_int:
                 self.cancel_pending_order(order.ticket)
     
     def update_position_sl_tp(self, position_ticket: int, new_sl: float = 0.0, new_tp: float = 0.0) -> None:
@@ -661,7 +688,7 @@ class Mt5LiveExecutionEngineConnector(IExecutionEngine):
         # Now we have a tuple of TradeOrder objects. We need to transform them into PendingOrder objects
         pending_orders = []
         for order in orders:
-            if order.magic != self.magic_number:
+            if not self._is_allowed_magic(order.magic):
                 continue
             # Convert the TradeOrder object into a PendingOrder object
             pending_order = PendingOrder(price=Decimal(str(order.price_open)),          # In live mode, price_open is a float
@@ -699,7 +726,7 @@ class Mt5LiveExecutionEngineConnector(IExecutionEngine):
         # Now we have a tuple of TradePosition objects. We need to transform them into OpenPosition objects
         open_positions = []
         for position in positions:
-            if position.magic != self.magic_number:
+            if not self._is_allowed_magic(position.magic):
                 continue
             # Convert the TradePosition object into an OpenPosition object
             open_position = OpenPosition(time_entry=datetime.fromtimestamp(position.time_msc / 1000.0),

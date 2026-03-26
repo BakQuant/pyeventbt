@@ -207,3 +207,10 @@ marimo/_lsp/
 __marimo__/
 
 .DS_Store
+
+# Local examples / runtime scratch
+example_json_strategy.py
+strategy_config.json
+
+# Local historical CSV datasets for manual tests
+pyeventbt/data_provider/connectors/historical_csv_data/*.csv

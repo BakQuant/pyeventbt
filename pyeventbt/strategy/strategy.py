@@ -304,7 +304,8 @@ class Strategy:
             run_scheduled_taks: bool = False,
             export_backtest_csv: bool = False,
             export_backtest_parquet: bool = True,
-            backtest_results_dir: str = None
+            backtest_results_dir: str = None,
+            allowed_magic_numbers: list[int] | None = None,
         ):
         # the queue is instantited here to avoid problems when performing a backtest inside a backtest.
         self.EVENTS_QUEUE = Queue() 
@@ -339,7 +340,8 @@ class Strategy:
             initial_balance=initial_capital,
             account_currency=account_currency,
             account_leverage=account_leverage,
-            magic_number=int(strategy_id)
+            magic_number=int(strategy_id),
+            allowed_magic_numbers=allowed_magic_numbers,
         )
         
         EXECUTION_ENGINE = ExecutionEngine(self.EVENTS_QUEUE, DATA_PROVIDER, execution_config)
@@ -424,6 +426,7 @@ class Strategy:
         initial_capital: float = 10000.0,
         symbols_to_trade: list[str] = ['EURUSD'],
         heartbeat: float = 0.1,
+        allowed_magic_numbers: list[int] | None = None,
         ):
         
         
@@ -446,7 +449,8 @@ class Strategy:
         
         # Set the execution engine configuration and create the execution engine object
         execution_config = MT5LiveExecutionConfig(
-            magic_number=int(strategy_id)
+            magic_number=int(strategy_id),
+            allowed_magic_numbers=allowed_magic_numbers,
         )
         
         EXECUTION_ENGINE = ExecutionEngine(self.EVENTS_QUEUE, DATA_PROVIDER, execution_config)

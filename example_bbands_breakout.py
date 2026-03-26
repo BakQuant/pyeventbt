@@ -157,10 +157,10 @@ strategy.configure_predefined_sizing_engine(MinSizingConfig())
 strategy.configure_predefined_risk_engine(PassthroughRiskConfig())
 
 # Backtest Configuration
-from_date = datetime(year=2020, month=1, day=1)
+from_date = datetime(year=2010, month=1, day=1)
 to_date = datetime(year=2023, month=12, day=1)
 # csv_dir = '/Users/marticastany/Desktop/long_data' # Change it with your own path to the CSV data
-csv_dir = None # If you don't have CSV data, you can set this to None
+csv_dir = r'D:\Trading\VAC_Lab\BQ_DMRI\inputs' # If you don't have CSV data, you can set this to None
 
 # Launch Backtest
 backtest = strategy.backtest(
@@ -171,7 +171,7 @@ backtest = strategy.backtest(
     backtest_name=strategy_id,
     start_date=from_date,
     end_date=to_date,
-    export_backtest_parquet=False,
+    export_backtest_parquet=True,
     account_currency='USD'
 )
 

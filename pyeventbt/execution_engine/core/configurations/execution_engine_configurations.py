@@ -16,9 +16,11 @@ class BaseExecutionConfig(BaseModel):
 
 class MT5LiveExecutionConfig(BaseExecutionConfig):
     magic_number: int
+    allowed_magic_numbers: list[int] | None = None
 
 class MT5SimulatedExecutionConfig(BaseExecutionConfig):
     initial_balance: Decimal
     account_currency: str
     account_leverage: int
     magic_number: int
+    allowed_magic_numbers: list[int] | None = None
